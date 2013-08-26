@@ -7,6 +7,7 @@ import www.sdxuyan.tk.util.AMapUtil;
 import www.sdxuyan.tk.util.Constants;
 import www.sdxuyan.tk.util.Intro;
 import www.sdxuyan.tk.util.ToastUtil;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.view.GestureDetector.OnGestureListener;
@@ -24,7 +25,9 @@ import com.amap.api.maps.AMap.InfoWindowAdapter;
 import com.amap.api.maps.AMap.OnInfoWindowClickListener;
 import com.amap.api.maps.AMap.OnMarkerClickListener;
 import com.amap.api.maps.CameraUpdateFactory;
+import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
+import com.amap.api.maps.model.PolylineOptions;
 import com.amap.api.maps.SupportMapFragment;
 
 public class MainActivity extends FragmentActivity implements
@@ -34,16 +37,9 @@ public class MainActivity extends FragmentActivity implements
 	// private OnLocationChangedListener mListener;
 	// private LocationManagerProxy mAMapLocationManager;
 
-	private Marker SDIE;
-	private Marker QUANCHENGGUANGCHANG;
-	private Marker DAMINGHU;
+	private Vector<Marker> markers = new Vector<Marker>();
 
-	private Vector<Marker> sights = new Vector<Marker>();
-
-	// private Button nextButton;// 点击移动至下一景点
-	// private Button beforeButton;// 移动至前一景点
-
-	private int flag = 0;
+	private int flag = 0;// 当前景点的标号
 
 	private ViewFlipper flipper;
 	private GestureDetector detector;
@@ -56,27 +52,16 @@ public class MainActivity extends FragmentActivity implements
 		// WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.test);
 		init();
-
-		detector = new GestureDetector(this);
-		flipper = (ViewFlipper) this.findViewById(R.id.myViewFlipper);
-
-		flipper.addView(addTextView(Intro.SDIE));
-		flipper.addView(addTextView("大明湖"));
-		flipper.addView(addTextView("泉城广场"));
+		detector = new GestureDetector(this, this);
 	}
 
 	private View addTextView(String text) {
 
 		LayoutInflater layoutInflater = LayoutInflater.from(this);
 		LinearLayout resultView = (LinearLayout) layoutInflater.inflate(
-				R.layout.itro_l, null);
-		((TextView) resultView.findViewById(R.id.textView2))
-				.setText(text);
+				R.layout.intro, null);
+		((TextView) resultView.findViewById(R.id.textView2)).setText(text);
 		return resultView;
-		// TextView iv = new TextView(this);
-		// iv.setText(text);
-		// iv.setTextSize(30.0f);
-		// return iv;
 	}
 
 	/**
@@ -92,6 +77,10 @@ public class MainActivity extends FragmentActivity implements
 			}
 
 		}
+		flipper = (ViewFlipper) this.findViewById(R.id.viewFlipperIntro);
+		flipper.addView(addTextView(Intro.SDIE));
+		flipper.addView(addTextView("大明湖"));
+		flipper.addView(addTextView("泉城广场"));
 	}
 
 	private void setUpMap() {
@@ -111,50 +100,20 @@ public class MainActivity extends FragmentActivity implements
 		aMap.setInfoWindowAdapter(this);
 		aMap.setOnInfoWindowClickListener(this);// 设置点击infoWindow事件监听器
 		addMarkersToMap();
-		sights.add(SDIE);
-		sights.add(DAMINGHU);
-		sights.add(QUANCHENGGUANGCHANG);
-		aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sights.get(flag)
+		aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markers.get(flag)
 				.getPosition(), 17));
-		sights.get(flag).showInfoWindow();
-		// nextButton = (Button) findViewById(R.id.next);
-		// nextButton.setOnClickListener(new OnClickListener() {
-		//
-		// @Override
-		// public void onClick(View v) {
-		// if (flag < sights.size() - 1) {
-		// sights.get(flag).setVisible(false);
-		// flag++;
-		// sights.get(flag).setVisible(true);
-		// aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sights
-		// .get(flag).getPosition(), 17));
-		// sights.get(flag).showInfoWindow();
-		// }
-		// // DAMINGHU.setVisible(true);
-		// // aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-		// // DAMINGHU.getPosition(), 15));
-		// // DAMINGHU.showInfoWindow();
-		// // QUANCHENGGUANGCHANG.remove();
-		//
-		// }
-		// });
-		// beforeButton = (Button) findViewById(R.id.before);
-		// beforeButton.setOnClickListener(new OnClickListener() {
-		//
-		// @Override
-		// public void onClick(View v) {
-		// if (flag > 0) {
-		// sights.get(flag).setVisible(false);
-		// flag--;
-		// sights.get(flag).setVisible(true);
-		// aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sights
-		// .get(flag).getPosition(), 17));
-		// sights.get(flag).showInfoWindow();
-		// }
-		//
-		// }
-		// });
+		markers.get(flag).showInfoWindow();
+		drawPolyline();
 
+	}
+
+	private void drawPolyline() {
+		aMap.addPolyline((new PolylineOptions())
+				.add(Constants.SDIE.getPosition(),
+						new LatLng(36.64832, 117.070725),
+						Constants.DAMINGHU.getPosition(),
+						Constants.QUANCHENGGUANGCHANG.getPosition()).width(5)
+				.color(Color.RED));
 	}
 
 	@Override
@@ -167,14 +126,9 @@ public class MainActivity extends FragmentActivity implements
 	 * 往地图上添加marker
 	 * */
 	private void addMarkersToMap() {
-		SDIE = aMap.addMarker(Constants.SDIE);
-		QUANCHENGGUANGCHANG = aMap.addMarker(Constants.QUANCHENGGUANGCHANG);
-		QUANCHENGGUANGCHANG.setVisible(false);
-		Constants.DAMINGHU.visible(false);
-		DAMINGHU = aMap.addMarker(Constants.DAMINGHU);
-
-		// DAMINGHU.setVisible(false);
-		// drawMarkers();// 添加10个带有系统默认icon的marker点
+		markers.add(aMap.addMarker(Constants.SDIE));
+		markers.add(aMap.addMarker(Constants.DAMINGHU));
+		markers.add(aMap.addMarker(Constants.QUANCHENGGUANGCHANG));
 	}
 
 	@Override
@@ -227,13 +181,13 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
 			float velocityY) {
 		if (e1.getX() - e2.getX() > 120) {
-			if (flag < sights.size() - 1) {
-				sights.get(flag).setVisible(false);
+			if (flag < markers.size() - 1) {
+				markers.get(flag).setVisible(false);
 				flag++;
-				sights.get(flag).setVisible(true);
-				aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sights
+				markers.get(flag).setVisible(true);
+				aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers
 						.get(flag).getPosition(), 17));
-				sights.get(flag).showInfoWindow();
+				markers.get(flag).showInfoWindow();
 				this.flipper.setInAnimation(AnimationUtils.loadAnimation(this,
 						R.anim.push_left_in));
 				this.flipper.setOutAnimation(AnimationUtils.loadAnimation(this,
@@ -244,12 +198,12 @@ public class MainActivity extends FragmentActivity implements
 			return true;
 		} else if (e1.getX() - e2.getX() < -120) {
 			if (flag > 0) {
-				sights.get(flag).setVisible(false);
+				markers.get(flag).setVisible(false);
 				flag--;
-				sights.get(flag).setVisible(true);
-				aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sights
+				markers.get(flag).setVisible(true);
+				aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers
 						.get(flag).getPosition(), 17));
-				sights.get(flag).showInfoWindow();
+				markers.get(flag).showInfoWindow();
 				this.flipper.setInAnimation(AnimationUtils.loadAnimation(this,
 						R.anim.push_right_in));
 				this.flipper.setOutAnimation(AnimationUtils.loadAnimation(this,
@@ -284,7 +238,7 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public boolean onSingleTapUp(MotionEvent e) {
-		// TODO Auto-generated method stub
+		ToastUtil.show(this, "你点击了viewFlipper");
 		return false;
 	}
 
